@@ -14,9 +14,13 @@ onload = function(){
 
   let prog = create_program(v_shader, f_shader)
 
-  let attLocation = gl.getAttribLocation(prog, 'position')
+  let attLocation = new Array(2)
+  attLocation[0] = gl.getAttribLocation(prog, 'position')
+  attLocation[1] = gl.getAttribLocation(prog, 'color')
 
-  let attStride = 3
+  let attStride = new Array(2)
+  attStride[0] = 3
+  attStride[1] = 4
 
   let v_pos = [
     0., 1., 0.,
@@ -24,11 +28,21 @@ onload = function(){
     -1.,0.,0.
   ]
 
-  let vbo = create_vbo(v_pos)
+  let v_col = [
+    1., 0., 0., 1.,
+    0., 1., 0, 1.,
+    0., 0., 1., 1.
+  ]
 
-  gl.bindBuffer(gl.ARRAY_BUFFER, vbo)
-  gl.enableVertexAttribArray(attLocation)
-  gl.vertexAttribPointer(attLocation, attStride, gl.FLOAT, false, 0, 0)
+  let pos_vbo = create_vbo(v_pos)
+  let col_vbo = create_vbo(v_col)
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, pos_vbo)
+  gl.enableVertexAttribArray(attLocation[0])
+  gl.vertexAttribPointer(attLocation[0], attStride[0], gl.FLOAT, false, 0, 0)
+  gl.bindBuffer(gl.ARRAY_BUFFER, col_vbo)
+  gl.enableVertexAttribArray(attLocation[1])
+  gl.vertexAttribPointer(attLocation[1], attStride[1], gl.FLOAT, false, 0, 0)
 
   let m = new matIV();
 
