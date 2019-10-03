@@ -37,31 +37,64 @@ onload = function(){
   let pos_vbo = create_vbo(v_pos)
   let col_vbo = create_vbo(v_col)
 
-  gl.bindBuffer(gl.ARRAY_BUFFER, pos_vbo)
-  gl.enableVertexAttribArray(attLocation[0])
-  gl.vertexAttribPointer(attLocation[0], attStride[0], gl.FLOAT, false, 0, 0)
-  gl.bindBuffer(gl.ARRAY_BUFFER, col_vbo)
-  gl.enableVertexAttribArray(attLocation[1])
-  gl.vertexAttribPointer(attLocation[1], attStride[1], gl.FLOAT, false, 0, 0)
+let vbos = [pos_vbo, col_vbo]
+
+  set_attribute(vbos, attLocation, attStride)
 
   let m = new matIV();
 
   let mMatrix = m.identity(m.create())
   let vMatrix = m.identity(m.create())
   let pMatrix = m.identity(m.create())
+  let tmpMatrix = m.identity(m.create())
   let mvpMatrix = m.identity(m.create())
 
-  m.lookAt([0.,1.,3.], [0.,0.,0.],[0.,1.,0.], vMatrix)
-  m.perspective(90, c.width/ c.height, 0.1, 100, pMatrix)
-
-  m.multiply(pMatrix, vMatrix, mvpMatrix)
-  m.multiply(mvpMatrix, mMatrix, mvpMatrix)
+  m.lookAt([0.,0.,5.], [0.,0.,0.],[0.,1.,0.], vMatrix)
+  m.perspective(45, c.width/ c.height, 0.1, 100, pMatrix)
+  m.multiply(pMatrix, vMatrix, tmpMatrix)
 
   let uniLocation = gl.getUniformLocation(prog, 'mvpMatrix')
 
-  gl.uniformMatrix4fv(uniLocation, false, mvpMatrix)
-  gl.drawArrays(gl.TRIANGLES,0,3)
-  gl.flush()
+  let count = 0;
+
+  (function(){
+    gl.clearColor(0., 0., 0., 1.)
+    gl.clearDepth(1.)
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+  
+    count++
+
+    let rad = (count % 360) * Math.PI / 180
+
+    let x = Math.cos(rad)
+    let y = Math.sin(rad)
+    m.identity(mMatrix)
+    m.translate(mMatrix, [x,y + 1., 0.], mMatrix)
+    
+    m.multiply(tmpMatrix, mMatrix, mvpMatrix)
+    gl.uniformMatrix4fv(uniLocation, false, mvpMatrix)
+    gl.drawArrays(gl.TRIANGLES,0,3)
+
+    m.identity(mMatrix)
+    m.translate(mMatrix, [1., -1., 0.], mMatrix)
+    m.rotate(mMatrix, rad, [0., 1., 0.], mMatrix)
+
+    m.multiply(tmpMatrix, mMatrix, mvpMatrix)
+    gl.uniformMatrix4fv(uniLocation, false, mvpMatrix)
+    gl.drawArrays(gl.TRIANGLES,0,3)
+
+    m.identity(mMatrix)
+    m.translate(mMatrix, [-1., -1., 0.], mMatrix)
+    m.scale(mMatrix, [y + 1., y + 1., 0.], mMatrix)
+
+    m.multiply(tmpMatrix, mMatrix, mvpMatrix)
+    gl.uniformMatrix4fv(uniLocation, false, mvpMatrix)
+    gl.drawArrays(gl.TRIANGLES,0,3)
+    
+    gl.flush()
+
+    setTimeout(arguments.callee, 1000/30)
+  })()
   
   function create_shader(id){
     let shader;
@@ -111,6 +144,24 @@ onload = function(){
     gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(data), gl.STATIC_DRAW);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     return vbo;
+  }
+
+  function set_attribute(vbo, attL, attS){
+    for(var i in vbo){
+      gl.bindBuffer(gl.ARRAY_BUFFER, vbo[i])
+      gl.enableVertexAttribArray(attL[i])
+      gl.vertexAttribPointer(attL[i],attS[i],gl.FLOAT, false, 0, 0)
+    }
+  }
+
+  function creatae_ibo(data){
+    let ibo = gl.createBuffer()
+    
+    gl.bindBuffer(gl.ELEMENT_BUFFER, ibo)
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Int16Array(data), gl.STATIC_DRAW)
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null)
+
+    return ibo
   }
 }
 
