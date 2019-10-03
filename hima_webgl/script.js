@@ -25,21 +25,31 @@ onload = function(){
   let v_pos = [
     0., 1., 0.,
     1., 0., 0.,
-    -1.,0.,0.
+    -1.,0.,0.,
+    0.,-1.,0.
   ]
 
   let v_col = [
     1., 0., 0., 1.,
     0., 1., 0, 1.,
-    0., 0., 1., 1.
+    0., 0., 1., 1.,
+    1.,1.,1.,1.
+  ]
+
+  let index = [
+    0,1,2,
+    1,2,3
   ]
 
   let pos_vbo = create_vbo(v_pos)
   let col_vbo = create_vbo(v_col)
 
-let vbos = [pos_vbo, col_vbo]
+  let vbos = [pos_vbo, col_vbo]
 
   set_attribute(vbos, attLocation, attStride)
+
+  let ibo = create_ibo(index)
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo)
 
   let m = new matIV();
 
@@ -58,6 +68,9 @@ let vbos = [pos_vbo, col_vbo]
   let count = 0;
 
   (function(){
+    gl.enable(gl.CULL_FACE)
+    gl.enable(gl.DEPTH_TEST)
+
     gl.clearColor(0., 0., 0., 1.)
     gl.clearDepth(1.)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
@@ -65,33 +78,30 @@ let vbos = [pos_vbo, col_vbo]
     count++
 
     let rad = (count % 360) * Math.PI / 180
+    let x = Math.cos(rad)*1.5
+    let z = Math.sin(rad)*1.5
 
-    let x = Math.cos(rad)
-    let y = Math.sin(rad)
-    m.identity(mMatrix)
-    m.translate(mMatrix, [x,y + 1., 0.], mMatrix)
+    // モデル座標変換行列の生成(Y軸による回転)
+    m.identity(mMatrix);
+    m.translate(mMatrix, [x, 0., z], mMatrix)
+		m.rotate(mMatrix, rad*0.8, [1, 1, 0], mMatrix);
+		m.multiply(tmpMatrix, mMatrix, mvpMatrix);
+    gl.uniformMatrix4fv(uniLocation, false, mvpMatrix);
+
+		gl.drawElements(gl.TRIANGLES, index.length, gl.UNSIGNED_SHORT, 0);
     
-    m.multiply(tmpMatrix, mMatrix, mvpMatrix)
-    gl.uniformMatrix4fv(uniLocation, false, mvpMatrix)
-    gl.drawArrays(gl.TRIANGLES,0,3)
-
-    m.identity(mMatrix)
-    m.translate(mMatrix, [1., -1., 0.], mMatrix)
-    m.rotate(mMatrix, rad, [0., 1., 0.], mMatrix)
-
-    m.multiply(tmpMatrix, mMatrix, mvpMatrix)
-    gl.uniformMatrix4fv(uniLocation, false, mvpMatrix)
-    gl.drawArrays(gl.TRIANGLES,0,3)
-
-    m.identity(mMatrix)
-    m.translate(mMatrix, [-1., -1., 0.], mMatrix)
-    m.scale(mMatrix, [y + 1., y + 1., 0.], mMatrix)
-
-    m.multiply(tmpMatrix, mMatrix, mvpMatrix)
-    gl.uniformMatrix4fv(uniLocation, false, mvpMatrix)
-    gl.drawArrays(gl.TRIANGLES,0,3)
-    
-    gl.flush()
+        // モデル座標変換行列の生成(Y軸による回転)
+    m.identity(mMatrix);
+    m.translate(mMatrix, [-x, 0., -z], mMatrix)    
+		m.rotate(mMatrix, rad, [1, 1, 0], mMatrix);
+		m.multiply(tmpMatrix, mMatrix, mvpMatrix);
+		gl.uniformMatrix4fv(uniLocation, false, mvpMatrix);
+		
+		// インデックスを用いた描画命令
+		gl.drawElements(gl.TRIANGLES, index.length, gl.UNSIGNED_SHORT, 0);
+		
+		// コンテキストの再描画
+		gl.flush();
 
     setTimeout(arguments.callee, 1000/30)
   })()
@@ -154,10 +164,10 @@ let vbos = [pos_vbo, col_vbo]
     }
   }
 
-  function creatae_ibo(data){
+  function create_ibo(data){
     let ibo = gl.createBuffer()
     
-    gl.bindBuffer(gl.ELEMENT_BUFFER, ibo)
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo)
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Int16Array(data), gl.STATIC_DRAW)
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null)
 
