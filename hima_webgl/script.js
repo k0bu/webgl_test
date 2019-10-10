@@ -130,36 +130,64 @@ onload = function(){
 		// ループのために再帰呼び出し
 		setTimeout(arguments.callee, 1000 / 30);
 	})();
-	
+
+	function loadTextFile(url, callback){
+		let request = new XMLHttpRequest();
+		request.open('GET', url, true);
+		request.responseType = "text";
+		request.onload = function () {
+				if (request.readyState == 4 || request.status == 200) {
+						console.log("Successfully '" + url + "' loaded.");
+						console.log(request.responseText)
+				} else { 
+						console.log("Error while loading '" + url + "'.");
+				}
+		};
+		request.onerror = callback;
+		request.send(null);
+	}
+
+
+
+
 	// シェーダを生成する関数
 	function create_shader(id){
 		// シェーダを格納する変数
 		var shader;
 		
+		/*
 		// HTMLからscriptタグへの参照を取得
 		var scriptElement = document.getElementById(id);
 		
 		// scriptタグが存在しない場合は抜ける
 		if(!scriptElement){return;}
-		
+		*/
+
 		// scriptタグのtype属性をチェック
-		switch(scriptElement.type){
-			
+		switch(id){
 			// 頂点シェーダの場合
-			case 'x-shader/x-vertex':
+			case 'vs':
 				shader = gl.createShader(gl.VERTEX_SHADER);
+				loadTextFile("vs.glsl", function(text){
+					gl.shaderSource(shader, text);
+				});
 				break;
 				
 			// フラグメントシェーダの場合
-			case 'x-shader/x-fragment':
+			case 'fs':
 				shader = gl.createShader(gl.FRAGMENT_SHADER);
+				loadTextFile("fs.glsl", function(text){
+					gl.shaderSource(shader, text);
+				});
 				break;
 			default :
 				return;
 		}
 		
+
+
 		// 生成されたシェーダにソースを割り当てる
-		gl.shaderSource(shader, scriptElement.text);
+		
 		
 		// シェーダをコンパイルする
 		gl.compileShader(shader);
