@@ -1,3 +1,6 @@
+#version 300 es
+#define attribute in
+#define varying out
 attribute vec3 position;
 attribute vec3 normal;
 attribute vec4 color;
