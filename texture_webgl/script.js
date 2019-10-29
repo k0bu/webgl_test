@@ -21,11 +21,11 @@ onload = function() {
   // テクスチャを読み込みPromiseを返します。
   function loadTextureImage(srcUrl) {
     const texture = new Image();
-    texture.src = srcUrl;
     return new Promise((resolve, reject) => {
       texture.addEventListener("load", e => {
         resolve(texture);
       });
+      texture.src = srcUrl;
     });
   }
 
@@ -117,31 +117,28 @@ onload = function() {
       textureImage
     ); // テクスチャデータの転送
     gl.generateMipmap(gl.TEXTURE_2D); // ミップマップの作成
+    gl.bindTexture(gl.TEXTURE_2D, null);
+
 
     const vertices = new Float32Array([
-      -1.0,
-      1.0,
-      0.0, // 頂点座標
-      0.0,
-      0.0, // テクスチャ座標
-      -1.0,
-      -1.0,
-      0.0,
-      0.0,
-      1.0,
-      1.0,
-      1.0,
-      0.0,
-      1.0,
-      0.0,
-      1.0,
-      -1.0,
-      0.0,
-      1.0,
-      1.0
+      -1.0, 1.0, 0.0, // 頂点座標
+      0.0, 0.0, // テクスチャ座標
+      -1.0,-1.0,0.0,
+      0.0,1.0,
+      1.0,1.0,0.0,
+      1.0,0.0,
+      1.0,-1.0,0.0,
+      1.0,1.0
     ]);
 
-    const indices = new Uint16Array([0, 1, 2, 1, 3, 2]);
+    const indices = new Uint16Array([
+      0, 
+      1, 
+      2, 
+      1, 
+      3, 
+      2
+    ]);
 
     const vertexBuffer = createBuffer(gl.ARRAY_BUFFER, vertices);
     const indexBuffer = createBuffer(gl.ELEMENT_ARRAY_BUFFER, indices);
@@ -150,7 +147,18 @@ onload = function() {
       program,
       "vertexPosition"
     );
-    const textureAttribLocation = gl.getAttribLocation(program, "texCoord");
+    const textureAttribLocation = gl.getAttribLocation(
+      program, 
+      "texCoord"
+    );
+    
+    const textureUniformLocation = gl.getUniformLocation(
+      program, 
+      "tex"
+    );
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.uniform1i(textureUniformLocation,0);
+    
 
     const VERTEX_SIZE = 3;
     const TEXTURE_SIZE = 2;
@@ -182,9 +190,49 @@ onload = function() {
     );
 
     // 描画します。
-    const indexSize = indices.length;
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-    gl.drawElements(gl.TRIANGLES, indexSize, gl.UNSIGNED_SHORT, 0);
-    gl.flush();
+
+      let m = new matIV();
+
+      const uniLocation = gl.getUniformLocation(program, "mvpMatrix");
+
+      let mMatrix = m.identity(m.create());
+      let vMatrix = m.identity(m.create());
+      let pMatrix = m.identity(m.create());
+      let tmpMatrix = m.identity(m.create());
+      let mvpMatrix = m.identity(m.create());
+
+      m.lookAt([0.,2.,5.], [0.,0.,0.],[0,1,0],vMatrix);//view Matrix
+      m.perspective(45, c.width/ c.height, 0.1, 100, pMatrix);//projection Matrix
+      m.multiply(pMatrix, vMatrix, tmpMatrix);
+
+      gl.enable(gl.DEPTH_TEST);
+      gl.depthFunc(gl.LEQUAL);
+
+      gl.activeTexture(gl.TEXTURE0);
+
+      let count = 0;
+
+    (function(){
+      gl.clearColor(0.,0.,0.,1.);
+      gl.clearDepth(1.0);
+      gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+
+      count++;
+      let rad = (count % 360) * Math.PI / 180;
+
+      m.identity(mMatrix);
+      m.rotate(mMatrix, rad, [0,1,0], mMatrix);
+      m.multiply(tmpMatrix, mMatrix, mvpMatrix);
+
+      gl.uniformMatrix4fv(uniLocation, false, mvpMatrix);
+
+      const indexSize = indices.length;
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+      gl.drawElements(gl.TRIANGLES, indexSize, gl.UNSIGNED_SHORT, 0);
+      gl.flush();
+      
+      setTimeout(arguments.callee, 1000 / 30);
+    })();
+
   });
 };
