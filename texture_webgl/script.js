@@ -89,11 +89,17 @@ onload = function() {
   }
 
   // シェーダとテクスチャを読み込み終わったら開始します。
-  Promise.all([loadShaders(), loadTextureImage("texture.png")])
+  Promise.all([
+    loadShaders(), 
+    loadTextureImage("texture0.png"), 
+    loadTextureImage("texture1.png")
+  ])
   .then(assets => {
     this.console.log(assets);
     const shaderSources = assets[0];
-    const textureImage = assets[1];
+    const textureImage0 = assets[1];
+    const textureImage1 = assets[2];
+
 
     const vertexShaderSource = shaderSources[0];
     const fragmentShaderSource = shaderSources[1];
@@ -106,15 +112,28 @@ onload = function() {
     //
     // テクスチャの転送
     //
-    const texture = gl.createTexture(); // テクスチャの作成
-    gl.bindTexture(gl.TEXTURE_2D, texture); // テクスチャのバインド
+    const texture0 = gl.createTexture(); // テクスチャの作成
+    gl.bindTexture(gl.TEXTURE_2D, texture0); // テクスチャのバインド
     gl.texImage2D(
       gl.TEXTURE_2D,
       0,
       gl.RGBA,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      textureImage
+      textureImage0
+    ); // テクスチャデータの転送
+    gl.generateMipmap(gl.TEXTURE_2D); // ミップマップの作成
+    gl.bindTexture(gl.TEXTURE_2D, null);
+
+    const texture1 = gl.createTexture(); // テクスチャの作成
+    gl.bindTexture(gl.TEXTURE_2D, texture1); // テクスチャのバインド
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      textureImage1
     ); // テクスチャデータの転送
     gl.generateMipmap(gl.TEXTURE_2D); // ミップマップの作成
     gl.bindTexture(gl.TEXTURE_2D, null);
@@ -152,13 +171,16 @@ onload = function() {
       "texCoord"
     );
     
-    const textureUniformLocation = gl.getUniformLocation(
+    const texture0UniformLocation = gl.getUniformLocation(
       program, 
-      "tex"
+      "texture0"
     );
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.uniform1i(textureUniformLocation,0);
-    
+    const texture1UniformLocation = gl.getUniformLocation(
+      program, 
+      "texture1"
+    );
+
+
 
     const VERTEX_SIZE = 3;
     const TEXTURE_SIZE = 2;
@@ -188,6 +210,16 @@ onload = function() {
       STRIDE,
       TEXTURE_OFFSET
     );
+    
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, texture0);
+    gl.uniform1i(texture0UniformLocation,0);
+    
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, texture1);
+    gl.uniform1i(texture1UniformLocation,1);
+
+    
 
     // 描画します。
 
@@ -210,6 +242,7 @@ onload = function() {
 
       gl.activeTexture(gl.TEXTURE0);
 
+
       let count = 0;
 
     (function(){
@@ -219,6 +252,8 @@ onload = function() {
 
       count++;
       let rad = (count % 360) * Math.PI / 180;
+
+
 
       m.identity(mMatrix);
       m.rotate(mMatrix, rad, [0,1,0], mMatrix);
